@@ -8,7 +8,6 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; color: #2d3748; }
 
-  /* Header */
   header {
     background: linear-gradient(135deg, #667eea, #764ba2);
     color: white; padding: 20px 24px;
@@ -18,10 +17,8 @@
   header h1 { font-size: 1.5rem; }
   header .subtitle { font-size: 0.85rem; opacity: 0.85; }
 
-  /* Layout */
   .container { max-width: 1000px; margin: 0 auto; padding: 20px 16px; }
 
-  /* Summary Cards */
   .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
   .card {
     background: white; border-radius: 12px; padding: 18px;
@@ -33,10 +30,8 @@
   .card.expense .amount { color: #e53e3e; }
   .card.balance .amount { color: #667eea; }
 
-  /* Main area */
   .main { display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
 
-  /* Form */
   .form-panel {
     background: white; border-radius: 12px; padding: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08); height: fit-content;
@@ -71,7 +66,6 @@
   }
   .btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
 
-  /* Records Panel */
   .records-panel {
     background: white; border-radius: 12px; padding: 20px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -95,7 +89,6 @@
   .btn-sm:hover { background: #f7fafc; border-color: #667eea; color: #667eea; }
   .btn-export { background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8; }
 
-  /* Records list */
   .records-list { max-height: 420px; overflow-y: auto; }
   .record-item {
     display: flex; align-items: center; padding: 11px 10px;
@@ -126,7 +119,6 @@
   .empty-state { text-align: center; color: #a0aec0; padding: 40px 0; font-size: 0.9rem; }
   .empty-state .icon { font-size: 2.5rem; margin-bottom: 8px; }
 
-  /* Chart */
   .chart-section { margin-top: 16px; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
   .chart-section h2 { font-size: 1rem; color: #4a5568; margin-bottom: 14px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
   .chart-row { display: flex; gap: 16px; }
@@ -139,7 +131,6 @@
   .bar-fill.income { background: #38a169; }
   .bar-fill.expense { background: #e53e3e; }
 
-  /* Toast */
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
     background: #2d3748; color: white; padding: 10px 20px; border-radius: 8px;
@@ -166,7 +157,6 @@
 </header>
 
 <div class="container">
-  <!-- Summary -->
   <div class="summary">
     <div class="card income">
       <div class="label">本月收入</div>
@@ -182,9 +172,7 @@
     </div>
   </div>
 
-  <!-- Main -->
   <div class="main">
-    <!-- Form -->
     <div class="form-panel">
       <h2>新增記錄</h2>
       <div class="type-toggle">
@@ -210,7 +198,6 @@
       <button class="btn-submit" onclick="addRecord()">新增記錄</button>
     </div>
 
-    <!-- Records -->
     <div class="records-panel">
       <div class="records-header">
         <h2>收支明細</h2>
@@ -235,7 +222,6 @@
     </div>
   </div>
 
-  <!-- Charts -->
   <div class="chart-section">
     <h2>本月分類統計</h2>
     <div class="chart-row">
@@ -254,7 +240,6 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ── Data ───────────────────────────────────────────────────────────────────
 const CATEGORIES = {
   income: ['薪資', '獎金', '投資', '兼職', '租金收入', '其他收入'],
   expense: ['餐飲', '交通', '購物', '娛樂', '醫療', '住房', '教育', '水電費', '通訊', '其他支出']
@@ -269,17 +254,13 @@ const ICONS = {
 let records = JSON.parse(localStorage.getItem('records') || '[]');
 let currentType = 'income';
 
-// ── Init ────────────────────────────────────────────────────────────────────
 function init() {
-  // Date header
   const now = new Date();
   document.getElementById('headerDate').innerHTML =
     now.toLocaleDateString('zh-TW', {year:'numeric', month:'long', day:'numeric', weekday:'long'});
 
-  // Set today's date in form
   document.getElementById('inputDate').value = now.toISOString().split('T')[0];
 
-  // Fill month filter
   const months = getMonths();
   const mSel = document.getElementById('filterMonth');
   const thisMonth = now.toISOString().slice(0,7);
@@ -301,6 +282,8 @@ function init() {
   }
 
   setType('income');
+  render();
+  // ★ handleDeepLink 移到 render() 之後，確保月份篩選已就緒
   handleDeepLink();
   render();
 }
@@ -316,7 +299,6 @@ function getMonths() {
   return [...set].sort().reverse();
 }
 
-// ── Type Toggle ─────────────────────────────────────────────────────────────
 function setType(type) {
   currentType = type;
   document.getElementById('btnIncome').className = type === 'income' ? 'active-income' : '';
@@ -331,7 +313,6 @@ function setType(type) {
   });
 }
 
-// ── Add Record ──────────────────────────────────────────────────────────────
 function addRecord() {
   const amount = parseFloat(document.getElementById('inputAmount').value);
   const category = document.getElementById('inputCategory').value;
@@ -356,7 +337,6 @@ function addRecord() {
   showToast(currentType === 'income' ? '✅ 收入已新增' : '✅ 支出已新增');
 }
 
-// ── Delete ───────────────────────────────────────────────────────────────────
 function deleteRecord(id) {
   records = records.filter(r => r.id !== id);
   save();
@@ -372,14 +352,12 @@ function clearAll() {
   showToast('已清除所有記錄');
 }
 
-// ── Render ───────────────────────────────────────────────────────────────────
 function render() {
   const month = document.getElementById('filterMonth').value;
   const type = document.getElementById('filterType').value;
   const category = document.getElementById('filterCategory').value;
   const search = document.getElementById('filterSearch').value.toLowerCase();
 
-  // Filter for selected month summary
   const monthRecords = records.filter(r => r.date.startsWith(month));
   const income = monthRecords.filter(r => r.type === 'income').reduce((s, r) => s + r.amount, 0);
   const expense = monthRecords.filter(r => r.type === 'expense').reduce((s, r) => s + r.amount, 0);
@@ -390,7 +368,6 @@ function render() {
   balEl.textContent = (bal < 0 ? '-$' : '$') + fmt(Math.abs(bal));
   balEl.style.color = bal < 0 ? '#e53e3e' : '#667eea';
 
-  // Update category filter
   const catSel = document.getElementById('filterCategory');
   const prevCat = catSel.value;
   catSel.innerHTML = '<option value="all">所有類別</option>';
@@ -402,7 +379,6 @@ function render() {
   });
   if (cats.includes(prevCat)) catSel.value = prevCat;
 
-  // Filter displayed records
   let filtered = monthRecords
     .filter(r => type === 'all' || r.type === type)
     .filter(r => category === 'all' || r.category === category)
@@ -428,7 +404,6 @@ function render() {
     `).join('');
   }
 
-  // Charts
   renderChart('chartExpense', monthRecords.filter(r => r.type === 'expense'), 'expense');
   renderChart('chartIncome', monthRecords.filter(r => r.type === 'income'), 'income');
 }
@@ -455,7 +430,6 @@ function renderChart(elId, data, type) {
   `).join('');
 }
 
-// ── Export ───────────────────────────────────────────────────────────────────
 function exportCSV() {
   const month = document.getElementById('filterMonth').value;
   const filtered = records.filter(r => r.date.startsWith(month))
@@ -475,7 +449,6 @@ function exportCSV() {
   showToast('✅ 已匯出 CSV');
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 function save() { localStorage.setItem('records', JSON.stringify(records)); }
 function fmt(n) { return Number(n).toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 2}); }
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -539,9 +512,7 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-
 init();
 </script>
 </body>
 </html>
-
