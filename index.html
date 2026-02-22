@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>記帳程式</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f4f8; color: #2d3748; }
+
+  /* Header */
+  header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white; padding: 20px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+  header h1 { font-size: 1.5rem; }
+  header .subtitle { font-size: 0.85rem; opacity: 0.85; }
+
+  /* Layout */
+  .container { max-width: 1000px; margin: 0 auto; padding: 20px 16px; }
+
+  /* Summary Cards */
+  .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .card {
+    background: white; border-radius: 12px; padding: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center;
+  }
+  .card .label { font-size: 0.8rem; color: #718096; margin-bottom: 6px; }
+  .card .amount { font-size: 1.6rem; font-weight: 700; }
+  .card.income .amount { color: #38a169; }
+  .card.expense .amount { color: #e53e3e; }
+  .card.balance .amount { color: #667eea; }
+
+  /* Main area */
+  .main { display: grid; grid-template-columns: 340px 1fr; gap: 16px; }
+
+  /* Form */
+  .form-panel {
+    background: white; border-radius: 12px; padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); height: fit-content;
+  }
+  .form-panel h2 { font-size: 1rem; margin-bottom: 16px; color: #4a5568; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+
+  .type-toggle { display: flex; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; margin-bottom: 14px; }
+  .type-toggle button {
+    flex: 1; padding: 9px; border: none; cursor: pointer;
+    font-size: 0.9rem; font-family: inherit; transition: all 0.2s;
+    background: #f7fafc; color: #718096;
+  }
+  .type-toggle button.active-income { background: #38a169; color: white; font-weight: 600; }
+  .type-toggle button.active-expense { background: #e53e3e; color: white; font-weight: 600; }
+
+  .form-group { margin-bottom: 12px; }
+  .form-group label { display: block; font-size: 0.82rem; color: #718096; margin-bottom: 4px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: 0.92rem; font-family: inherit; transition: border 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+  }
+  .form-group textarea { resize: vertical; height: 60px; }
+
+  .btn-submit {
+    width: 100%; padding: 11px; border: none; border-radius: 8px; cursor: pointer;
+    font-size: 0.95rem; font-weight: 600; font-family: inherit; transition: all 0.2s;
+    background: linear-gradient(135deg, #667eea, #764ba2); color: white;
+    margin-top: 4px;
+  }
+  .btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  /* Records Panel */
+  .records-panel {
+    background: white; border-radius: 12px; padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .records-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+  .records-header h2 { font-size: 1rem; color: #4a5568; }
+  .records-actions { display: flex; gap: 8px; }
+
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-bar select, .filter-bar input {
+    padding: 7px 10px; border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: 0.85rem; font-family: inherit; background: #f7fafc;
+  }
+  .filter-bar input { flex: 1; min-width: 120px; }
+
+  .btn-sm {
+    padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+    background: white; cursor: pointer; font-size: 0.82rem; font-family: inherit;
+    color: #4a5568; transition: all 0.2s;
+  }
+  .btn-sm:hover { background: #f7fafc; border-color: #667eea; color: #667eea; }
+  .btn-export { background: #ebf8ff; color: #2b6cb0; border-color: #bee3f8; }
+
+  /* Records list */
+  .records-list { max-height: 420px; overflow-y: auto; }
+  .record-item {
+    display: flex; align-items: center; padding: 11px 10px;
+    border-radius: 8px; margin-bottom: 6px; transition: background 0.15s;
+    border: 1px solid #f0f0f0;
+  }
+  .record-item:hover { background: #f7fafc; }
+  .record-icon { font-size: 1.4rem; margin-right: 12px; min-width: 32px; text-align: center; }
+  .record-info { flex: 1; }
+  .record-title { font-weight: 600; font-size: 0.92rem; }
+  .record-meta { font-size: 0.78rem; color: #a0aec0; margin-top: 2px; }
+  .record-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 99px;
+    font-size: 0.72rem; margin-left: 6px;
+    background: #edf2f7; color: #718096;
+  }
+  .record-right { text-align: right; }
+  .record-amount { font-weight: 700; font-size: 1rem; }
+  .record-amount.income { color: #38a169; }
+  .record-amount.expense { color: #e53e3e; }
+  .btn-delete {
+    background: none; border: none; cursor: pointer; color: #cbd5e0;
+    font-size: 1.1rem; padding: 2px 6px; margin-left: 8px; border-radius: 4px;
+    transition: color 0.2s;
+  }
+  .btn-delete:hover { color: #e53e3e; background: #fff5f5; }
+
+  .empty-state { text-align: center; color: #a0aec0; padding: 40px 0; font-size: 0.9rem; }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 8px; }
+
+  /* Chart */
+  .chart-section { margin-top: 16px; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .chart-section h2 { font-size: 1rem; color: #4a5568; margin-bottom: 14px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+  .chart-row { display: flex; gap: 16px; }
+  .chart-col { flex: 1; }
+  .chart-col h3 { font-size: 0.85rem; color: #718096; margin-bottom: 10px; }
+  .bar-item { margin-bottom: 8px; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 3px; }
+  .bar-track { background: #edf2f7; border-radius: 99px; height: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+  .bar-fill.income { background: #38a169; }
+  .bar-fill.expense { background: #e53e3e; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: #2d3748; color: white; padding: 10px 20px; border-radius: 8px;
+    font-size: 0.88rem; opacity: 0; transition: all 0.3s; z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 700px) {
+    .main { grid-template-columns: 1fr; }
+    .summary { grid-template-columns: 1fr; }
+    .chart-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>💰 個人記帳本</h1>
+    <div class="subtitle">輕鬆管理你的收支</div>
+  </div>
+  <div id="headerDate" style="font-size:0.85rem; opacity:0.85; text-align:right;"></div>
+</header>
+
+<div class="container">
+  <!-- Summary -->
+  <div class="summary">
+    <div class="card income">
+      <div class="label">本月收入</div>
+      <div class="amount" id="summaryIncome">$0</div>
+    </div>
+    <div class="card expense">
+      <div class="label">本月支出</div>
+      <div class="amount" id="summaryExpense">$0</div>
+    </div>
+    <div class="card balance">
+      <div class="label">本月結餘</div>
+      <div class="amount" id="summaryBalance">$0</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Form -->
+    <div class="form-panel">
+      <h2>新增記錄</h2>
+      <div class="type-toggle">
+        <button id="btnIncome" class="active-income" onclick="setType('income')">＋ 收入</button>
+        <button id="btnExpense" onclick="setType('expense')">－ 支出</button>
+      </div>
+      <div class="form-group">
+        <label>金額（元）</label>
+        <input type="number" id="inputAmount" placeholder="0" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>類別</label>
+        <select id="inputCategory"></select>
+      </div>
+      <div class="form-group">
+        <label>日期</label>
+        <input type="date" id="inputDate">
+      </div>
+      <div class="form-group">
+        <label>說明（選填）</label>
+        <textarea id="inputNote" placeholder="備註說明..."></textarea>
+      </div>
+      <button class="btn-submit" onclick="addRecord()">新增記錄</button>
+    </div>
+
+    <!-- Records -->
+    <div class="records-panel">
+      <div class="records-header">
+        <h2>收支明細</h2>
+        <div class="records-actions">
+          <button class="btn-sm btn-export" onclick="exportCSV()">⬇ 匯出 CSV</button>
+          <button class="btn-sm" onclick="clearAll()" style="color:#e53e3e;">🗑 清除全部</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <select id="filterMonth" onchange="render()"></select>
+        <select id="filterType" onchange="render()">
+          <option value="all">全部</option>
+          <option value="income">收入</option>
+          <option value="expense">支出</option>
+        </select>
+        <select id="filterCategory" onchange="render()">
+          <option value="all">所有類別</option>
+        </select>
+        <input type="text" id="filterSearch" placeholder="搜尋..." oninput="render()">
+      </div>
+      <div class="records-list" id="recordsList"></div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="chart-section">
+    <h2>本月分類統計</h2>
+    <div class="chart-row">
+      <div class="chart-col">
+        <h3>支出分類</h3>
+        <div id="chartExpense"></div>
+      </div>
+      <div class="chart-col">
+        <h3>收入分類</h3>
+        <div id="chartIncome"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Data ───────────────────────────────────────────────────────────────────
+const CATEGORIES = {
+  income: ['薪資', '獎金', '投資', '兼職', '租金收入', '其他收入'],
+  expense: ['餐飲', '交通', '購物', '娛樂', '醫療', '住房', '教育', '水電費', '通訊', '其他支出']
+};
+
+const ICONS = {
+  '薪資':'💼','獎金':'🎁','投資':'📈','兼職':'🛠','租金收入':'🏠','其他收入':'💵',
+  '餐飲':'🍜','交通':'🚌','購物':'🛍','娛樂':'🎮','醫療':'💊','住房':'🏘',
+  '教育':'📚','水電費':'💡','通訊':'📱','其他支出':'💳'
+};
+
+let records = JSON.parse(localStorage.getItem('records') || '[]');
+let currentType = 'income';
+
+// ── Init ────────────────────────────────────────────────────────────────────
+function init() {
+  // Date header
+  const now = new Date();
+  document.getElementById('headerDate').innerHTML =
+    now.toLocaleDateString('zh-TW', {year:'numeric', month:'long', day:'numeric', weekday:'long'});
+
+  // Set today's date in form
+  document.getElementById('inputDate').value = now.toISOString().split('T')[0];
+
+  // Fill month filter
+  const months = getMonths();
+  const mSel = document.getElementById('filterMonth');
+  const thisMonth = now.toISOString().slice(0,7);
+  months.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m;
+    const [y, mo] = m.split('-');
+    opt.textContent = `${y}年${parseInt(mo)}月`;
+    if (m === thisMonth) opt.selected = true;
+    mSel.appendChild(opt);
+  });
+  if (!months.includes(thisMonth)) {
+    const opt = document.createElement('option');
+    opt.value = thisMonth;
+    const [y, mo] = thisMonth.split('-');
+    opt.textContent = `${y}年${parseInt(mo)}月`;
+    opt.selected = true;
+    mSel.insertBefore(opt, mSel.firstChild);
+  }
+
+  setType('income');
+  handleDeepLink();
+  render();
+}
+
+function getMonths() {
+  const set = new Set();
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    set.add(d.toISOString().slice(0,7));
+  }
+  records.forEach(r => set.add(r.date.slice(0,7)));
+  return [...set].sort().reverse();
+}
+
+// ── Type Toggle ─────────────────────────────────────────────────────────────
+function setType(type) {
+  currentType = type;
+  document.getElementById('btnIncome').className = type === 'income' ? 'active-income' : '';
+  document.getElementById('btnExpense').className = type === 'expense' ? 'active-expense' : '';
+
+  const sel = document.getElementById('inputCategory');
+  sel.innerHTML = '';
+  CATEGORIES[type].forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = (ICONS[c] || '') + ' ' + c;
+    sel.appendChild(opt);
+  });
+}
+
+// ── Add Record ──────────────────────────────────────────────────────────────
+function addRecord() {
+  const amount = parseFloat(document.getElementById('inputAmount').value);
+  const category = document.getElementById('inputCategory').value;
+  const date = document.getElementById('inputDate').value;
+  const note = document.getElementById('inputNote').value.trim();
+
+  if (!amount || amount <= 0) { showToast('請輸入有效金額'); return; }
+  if (!date) { showToast('請選擇日期'); return; }
+
+  records.push({
+    id: Date.now().toString(),
+    type: currentType, amount, category, date, note
+  });
+  save();
+
+  document.getElementById('inputAmount').value = '';
+  document.getElementById('inputNote').value = '';
+  document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
+
+  ensureMonthInFilter(date);
+  render();
+  showToast(currentType === 'income' ? '✅ 收入已新增' : '✅ 支出已新增');
+}
+
+// ── Delete ───────────────────────────────────────────────────────────────────
+function deleteRecord(id) {
+  records = records.filter(r => r.id !== id);
+  save();
+  render();
+  showToast('已刪除');
+}
+
+function clearAll() {
+  if (!confirm('確定要清除所有記錄嗎？此操作無法復原。')) return;
+  records = [];
+  save();
+  render();
+  showToast('已清除所有記錄');
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  const month = document.getElementById('filterMonth').value;
+  const type = document.getElementById('filterType').value;
+  const category = document.getElementById('filterCategory').value;
+  const search = document.getElementById('filterSearch').value.toLowerCase();
+
+  // Filter for selected month summary
+  const monthRecords = records.filter(r => r.date.startsWith(month));
+  const income = monthRecords.filter(r => r.type === 'income').reduce((s, r) => s + r.amount, 0);
+  const expense = monthRecords.filter(r => r.type === 'expense').reduce((s, r) => s + r.amount, 0);
+  document.getElementById('summaryIncome').textContent = '$' + fmt(income);
+  document.getElementById('summaryExpense').textContent = '$' + fmt(expense);
+  const bal = income - expense;
+  const balEl = document.getElementById('summaryBalance');
+  balEl.textContent = (bal < 0 ? '-$' : '$') + fmt(Math.abs(bal));
+  balEl.style.color = bal < 0 ? '#e53e3e' : '#667eea';
+
+  // Update category filter
+  const catSel = document.getElementById('filterCategory');
+  const prevCat = catSel.value;
+  catSel.innerHTML = '<option value="all">所有類別</option>';
+  const cats = [...new Set(monthRecords.map(r => r.category))].sort();
+  cats.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = (ICONS[c] || '') + ' ' + c;
+    catSel.appendChild(opt);
+  });
+  if (cats.includes(prevCat)) catSel.value = prevCat;
+
+  // Filter displayed records
+  let filtered = monthRecords
+    .filter(r => type === 'all' || r.type === type)
+    .filter(r => category === 'all' || r.category === category)
+    .filter(r => !search || r.category.toLowerCase().includes(search) || r.note.toLowerCase().includes(search))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+  const list = document.getElementById('recordsList');
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📋</div>尚無記錄</div>`;
+  } else {
+    list.innerHTML = filtered.map(r => `
+      <div class="record-item">
+        <div class="record-icon">${ICONS[r.category] || '💰'}</div>
+        <div class="record-info">
+          <div class="record-title">${r.category}<span class="record-tag">${r.type === 'income' ? '收入' : '支出'}</span></div>
+          <div class="record-meta">${r.date}${r.note ? ' · ' + escHtml(r.note) : ''}</div>
+        </div>
+        <div class="record-right">
+          <div class="record-amount ${r.type}">${r.type === 'income' ? '+' : '-'}$${fmt(r.amount)}</div>
+        </div>
+        <button class="btn-delete" onclick="deleteRecord('${r.id}')" title="刪除">✕</button>
+      </div>
+    `).join('');
+  }
+
+  // Charts
+  renderChart('chartExpense', monthRecords.filter(r => r.type === 'expense'), 'expense');
+  renderChart('chartIncome', monthRecords.filter(r => r.type === 'income'), 'income');
+}
+
+function renderChart(elId, data, type) {
+  const el = document.getElementById(elId);
+  if (data.length === 0) { el.innerHTML = '<div style="color:#a0aec0;font-size:0.85rem;padding:8px 0">無資料</div>'; return; }
+
+  const totals = {};
+  data.forEach(r => { totals[r.category] = (totals[r.category] || 0) + r.amount; });
+  const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  const max = sorted[0][1];
+
+  el.innerHTML = sorted.map(([cat, amt]) => `
+    <div class="bar-item">
+      <div class="bar-label">
+        <span>${ICONS[cat] || ''} ${cat}</span>
+        <span style="font-weight:600">$${fmt(amt)}</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill ${type}" style="width:${(amt/max*100).toFixed(1)}%"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Export ───────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const month = document.getElementById('filterMonth').value;
+  const filtered = records.filter(r => r.date.startsWith(month))
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  if (filtered.length === 0) { showToast('本月無記錄可匯出'); return; }
+
+  const rows = [['日期', '類型', '類別', '金額', '說明']];
+  filtered.forEach(r => rows.push([r.date, r.type === 'income' ? '收入' : '支出', r.category, r.amount, r.note]));
+
+  const csv = '\uFEFF' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `記帳_${month}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ 已匯出 CSV');
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function save() { localStorage.setItem('records', JSON.stringify(records)); }
+function fmt(n) { return Number(n).toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 2}); }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function b64DecodeUnicode(str) {
+  return decodeURIComponent(
+    atob(str).split('').map(c =>
+      '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+    ).join('')
+  );
+}
+
+function ensureMonthInFilter(date) {
+  const month = date.slice(0, 7);
+  const mSel = document.getElementById('filterMonth');
+  let found = false;
+  for (const opt of mSel.options) { if (opt.value === month) { found = true; break; } }
+  if (!found) {
+    const opt = document.createElement('option');
+    opt.value = month;
+    const [y, mo] = month.split('-');
+    opt.textContent = `${y}年${parseInt(mo)}月`;
+    mSel.insertBefore(opt, mSel.firstChild);
+  }
+  mSel.value = month;
+}
+
+function handleDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get('r');
+  if (!raw) return;
+  let rec;
+  try { rec = JSON.parse(b64DecodeUnicode(raw)); }
+  catch (e) { showToast('連結格式錯誤'); return; }
+
+  const validCategories = [...CATEGORIES.income, ...CATEGORIES.expense];
+  if (!['income', 'expense'].includes(rec.type)) { showToast('錯誤：無效類型'); return; }
+  if (!validCategories.includes(rec.category)) { showToast('錯誤：無效類別「' + rec.category + '」'); return; }
+  if (!rec.amount || rec.amount <= 0) { showToast('錯誤：無效金額'); return; }
+  if (!rec.date || !/^\d{4}-\d{2}-\d{2}$/.test(rec.date))
+    rec.date = new Date().toISOString().split('T')[0];
+
+  const newRecord = {
+    id: Date.now().toString(), type: rec.type,
+    amount: parseFloat(rec.amount), category: rec.category,
+    date: rec.date, note: rec.note || ''
+  };
+
+  records.push(newRecord);
+  save();
+  window.history.replaceState({}, document.title, window.location.pathname);
+  ensureMonthInFilter(newRecord.date);
+  showToast(`✅ 已新增：${newRecord.category} ${newRecord.type === 'income' ? '+' : '-'}$${fmt(newRecord.amount)}`);
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// Add some sample data on first load
+if (records.length === 0) {
+  const today = new Date();
+  const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,'0');
+  records = [
+    { id:'1', type:'income', amount:50000, category:'薪資', date:`${y}-${m}-05`, note:'本月薪資' },
+    { id:'2', type:'expense', amount:8000, category:'住房', date:`${y}-${m}-10`, note:'房租' },
+    { id:'3', type:'expense', amount:3500, category:'餐飲', date:`${y}-${m}-12`, note:'' },
+    { id:'4', type:'expense', amount:1200, category:'交通', date:`${y}-${m}-15`, note:'捷運月票' },
+    { id:'5', type:'income', amount:5000, category:'兼職', date:`${y}-${m}-18`, note:'接案收入' },
+    { id:'6', type:'expense', amount:2000, category:'娛樂', date:`${y}-${m}-20`, note:'電影+聚餐' },
+  ];
+  save();
+}
+
+init();
+</script>
+</body>
+</html>
