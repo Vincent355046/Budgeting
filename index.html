@@ -539,22 +539,9 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-// Add some sample data on first load
-if (records.length === 0) {
-  const today = new Date();
-  const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,'0');
-  records = [
-    { id:'1', type:'income', amount:50000, category:'薪資', date:`${y}-${m}-05`, note:'本月薪資' },
-    { id:'2', type:'expense', amount:8000, category:'住房', date:`${y}-${m}-10`, note:'房租' },
-    { id:'3', type:'expense', amount:3500, category:'餐飲', date:`${y}-${m}-12`, note:'' },
-    { id:'4', type:'expense', amount:1200, category:'交通', date:`${y}-${m}-15`, note:'捷運月票' },
-    { id:'5', type:'income', amount:5000, category:'兼職', date:`${y}-${m}-18`, note:'接案收入' },
-    { id:'6', type:'expense', amount:2000, category:'娛樂', date:`${y}-${m}-20`, note:'電影+聚餐' },
-  ];
-  save();
-}
 
 init();
 </script>
 </body>
 </html>
+
